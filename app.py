@@ -196,9 +196,13 @@ def main():
                     st.markdown(f"**Question:**")
                     st.markdown(f'<div class="question-box">{item["question"]}</div>', unsafe_allow_html=True)
                     
-                    # Answer
-                    st.markdown(f"**Answer:**")
-                    st.markdown(f'<div class="answer-box">{item["result"]["answer"]}</div>', unsafe_allow_html=True)
+                    # Executive Summary
+                    st.markdown(f"**Executive Summary:**")
+                    st.markdown(f'<div class="answer-box">{item["result"]["executive_summary"]}</div>', unsafe_allow_html=True)
+                    
+                    # Detailed Analysis
+                    st.markdown(f"**Detailed Analysis:**")
+                    st.markdown(f'<div class="answer-box">{item["result"]["detailed_analysis"]}</div>', unsafe_allow_html=True)
                     
                     # Sources
                     st.markdown(f"**Sources:**")
@@ -223,23 +227,31 @@ def main():
                             )
                     
                     # Metadata
-                    col_meta1, col_meta2 = st.columns(2)
+                    col_meta1, col_meta2, col_meta3 = st.columns(3)
                     with col_meta1:
                         if item['result'].get('tokens_used'):
                             st.caption(f"Tokens: {item['result']['tokens_used']}")
                     with col_meta2:
+                        if item['result'].get('provider'):
+                            st.caption(f"Provider: {item['result']['provider'].upper()}")
+                    with col_meta3:
                         st.caption(f"Time: {item['timestamp']}")
+                        
+                    if item['result'].get('fallback_used'):
+                        st.warning("Note: Fallback LLM was used for this analysis")
     
     with col2:
         st.subheader("Example Questions")
         
         examples = [
+            "What is the impact of a 10% cost increase on next quarter's performance?",
+            "What is the best decision to reduce customer churn rate?",
+            "How can we improve operational efficiency based on Q3 data?",
+            "What strategic moves should we make to counter competitor activities?",
+            "How can we optimize our marketing budget for maximum ROI?",
             "What is our Q1 2024 financial performance?",
-            "What are the main customer complaints?",
-            "What are our competitors doing?",
-            "What is our marketing strategy?",
             "What are the risk management priorities?",
-            "Summarize the employee satisfaction survey"
+            "Summarize the employee satisfaction survey",
         ]
         
         for example in examples:

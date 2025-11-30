@@ -7,14 +7,14 @@ from datetime import datetime
 import os
 
 from configs import Config
-from src import RAGPipeline
+from src import StrategicRAGPipeline
 from contextlib import asynccontextmanager
 from fastapi.responses import JSONResponse
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global rag_pipeline
-    rag_pipeline = RAGPipeline()
+    rag_pipeline = StrategicRAGPipeline()
     yield
 
 # Initialize FastAPI app
@@ -53,11 +53,16 @@ class Source(BaseModel):
 
 class QueryResponse(BaseModel):
     question: str
-    answer: str
+    executive_summary: str
+    detailed_analysis: str
     sources: List[Source]
     timestamp: str
     tokens_used: Optional[int] = None
     context: Optional[str] = None
+    provider: Optional[str] = None
+    model: Optional[str] = None
+    fallback_used: Optional[bool] = None
+    error: Optional[bool] = None
 
 
 class HealthResponse(BaseModel):
@@ -127,7 +132,8 @@ async def query(request: QueryRequest):
         # Format response
         response = QueryResponse(
             question=result['question'],
-            answer=result['answer'],
+            executive_summary=result['executive_summary'],
+            detailed_analysis=result['detailed_analysis'],
             sources=[
                 Source(
                     filename=source['filename'],
@@ -136,9 +142,13 @@ async def query(request: QueryRequest):
                 )
                 for source in result['sources']
             ],
-            timestamp=datetime.now().isoformat(),
+            timestamp=result['timestamp'],
             tokens_used=result.get('tokens_used'),
-            context=result.get('context') if request.return_context else None
+            context=result.get('context') if request.return_context else None,
+            provider=result.get('provider'),
+            model=result.get('model'),
+            fallback_used=result.get('fallback_used'),
+            error=result.get('error')
         )
         
         return response
