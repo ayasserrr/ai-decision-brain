@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
 from configs import Config
-from src import RAGPipeline
+from src import StrategicRAGPipeline
 
 
 def print_header():
@@ -27,7 +27,7 @@ def print_help():
     print("-" * 60 + "\n")
 
 
-def print_stats(rag: RAGPipeline):
+def print_stats(rag: StrategicRAGPipeline):
     """Print system statistics"""
     stats = rag.vector_store.get_stats()
     
@@ -37,7 +37,8 @@ def print_stats(rag: RAGPipeline):
     print(f"Status: {stats['status']}")
     print(f"Total Documents Indexed: {stats['total_vectors']} chunks")
     print(f"Embedding Dimension: {stats['dimension']}")
-    print(f"LLM Model: {Config.GENERATION_MODEL_ID}")
+    llm_config = Config.get_llm_config()
+    print(f"LLM Model: {llm_config['model']}")
     print(f"Embedding Model: {Config.EMBEDDING_MODEL_NAME}")
     print("-" * 60 + "\n")
 
@@ -53,7 +54,7 @@ def interactive_mode():
     try:
         # Initialize RAG pipeline
         print("\nInitializing system...")
-        rag = RAGPipeline()
+        rag = StrategicRAGPipeline()
         
         # Print header
         print_header()
@@ -92,9 +93,14 @@ def interactive_mode():
                 
                 # Display result
                 print("\n" + "=" * 60)
-                print("ANSWER")
+                print("EXECUTIVE SUMMARY")
                 print("=" * 60)
-                print(result['answer'])
+                print(result['executive_summary'])
+                
+                print("\n" + "=" * 60)
+                print("DETAILED ANALYSIS")
+                print("=" * 60)
+                print(result['detailed_analysis'])
                 
                 print("\n" + "-" * 60)
                 print("SOURCES")
@@ -128,7 +134,7 @@ def single_question_mode(question: str):
     """Answer a single question and exit"""
     try:
         print("\nInitializing system...")
-        rag = RAGPipeline()
+        rag = StrategicRAGPipeline()
         
         print(f"\nQuestion: {question}")
         print("-" * 60)
@@ -136,7 +142,9 @@ def single_question_mode(question: str):
         result = rag.query(question, top_k=Config.TOP_K_RESULTS)
         
         print("\nAnswer:")
-        print(result['answer'])
+        print(result['executive_summary'])
+        print("\n\nDetailed Analysis:")
+        print(result['detailed_analysis'])
         
         print("\n\nSources:")
         for i, source in enumerate(result['sources'], 1):
@@ -153,7 +161,7 @@ def main():
     if not (Config.VECTOR_DB_DIR / "faiss_index.bin").exists():
         print("\nERROR: Vector store not found!")
         print("Please run the setup first:")
-        print("  python setup.py")
+        print("  python src/rag_pipeline.py")
         sys.exit(1)
     
     # Check command line arguments
