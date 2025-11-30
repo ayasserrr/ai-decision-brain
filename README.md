@@ -87,7 +87,7 @@ pip install -r requirements.txt
 Copy the environment template and configure your settings:
 
 ```bash
-cp .env.example .env
+copy .env.example .env
 ```
 
 Edit `.env` file with your preferred AI provider:
