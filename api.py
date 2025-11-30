@@ -4,15 +4,24 @@ from pydantic import BaseModel, Field
 from typing import List, Optional, Dict
 import uvicorn
 from datetime import datetime
+import os
 
 from configs import Config
 from src import RAGPipeline
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global rag_pipeline
+    rag_pipeline = RAGPipeline()
+    yield
 
 # Initialize FastAPI app
 app = FastAPI(
     title="AI Decision Brain API",
     description="RAG-based Question Answering API",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # Add CORS middleware
@@ -62,20 +71,6 @@ class HealthResponse(BaseModel):
 class ErrorResponse(BaseModel):
     error: str
     detail: str
-
-
-# Startup event
-@app.on_event("startup")
-async def startup_event():
-    """Initialize RAG pipeline on startup"""
-    global rag_pipeline
-    try:
-        print("Initializing RAG Pipeline...")
-        rag_pipeline = RAGPipeline()
-        print("RAG Pipeline initialized successfully")
-    except Exception as e:
-        print(f"Failed to initialize RAG Pipeline: {str(e)}")
-        raise
 
 
 # Routes
@@ -202,5 +197,5 @@ if __name__ == "__main__":
         "api:app",
         host="0.0.0.0",
         port=8000,
-        reload=True
+        reload=(os.getenv("UVICORN_RELOAD", "0") == "1")
     )

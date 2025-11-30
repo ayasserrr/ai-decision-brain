@@ -49,7 +49,7 @@ class Config:
         assert cls.OPENAI_API_URL, "OPENAI_API_URL not set in .env file"
         assert cls.OPENAI_API_KEY, "OPENAI_API_KEY not set in .env file"
         assert cls.GENERATION_MODEL_ID, "GENERATION_MODEL_ID not set in .env file"
-        print("✓ Configuration validated successfully")
+        print("Configuration validated successfully")
     
     @classmethod
     def display_config(cls):

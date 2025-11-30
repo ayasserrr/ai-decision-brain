@@ -6,7 +6,7 @@ import time
 # Page configuration
 st.set_page_config(
     page_title="AI Decision Brain",
-    page_icon="🧠",
+    page_icon="AI",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -96,37 +96,37 @@ def get_stats():
 
 def main():
     # Header
-    st.markdown('<h1 class="main-header">🧠 AI Decision Brain</h1>', unsafe_allow_html=True)
+    st.markdown('<h1 class="main-header">AI Decision Brain</h1>', unsafe_allow_html=True)
     st.markdown('<p style="text-align: center; color: #666; font-size: 1.2rem;">Ask questions about your documents</p>', unsafe_allow_html=True)
     
     # Sidebar
     with st.sidebar:
-        st.header("⚙️ Settings")
+        st.header("Settings")
         
         # API Health Check
-        st.subheader("🔌 API Status")
+        st.subheader("API Status")
         is_healthy, health_data = check_api_health()
         
         if is_healthy:
-            st.success("✓ API Connected")
+            st.success("API Connected")
             if health_data:
                 st.metric("Total Chunks", health_data.get('total_chunks', 'N/A'))
                 st.metric("Embedding Dimension", health_data.get('embedding_dimension', 'N/A'))
         else:
-            st.error("✗ API Disconnected")
+            st.error("API Disconnected")
             st.warning("Please start the API server:\n```bash\npython api.py\n```")
         
         st.divider()
         
         # Query Settings
-        st.subheader("🎛️ Query Settings")
+        st.subheader("Query Settings")
         top_k = st.slider("Number of sources to retrieve", min_value=1, max_value=10, value=5)
         show_context = st.checkbox("Show retrieved context", value=False)
         
         st.divider()
         
         # System Stats
-        st.subheader("📊 System Info")
+        st.subheader("System Info")
         if st.button("Refresh Stats"):
             stats = get_stats()
             if stats:
@@ -135,7 +135,7 @@ def main():
         st.divider()
         
         # About
-        st.subheader("ℹ️ About")
+        st.subheader("About")
         st.info("AI Decision Brain uses RAG (Retrieval-Augmented Generation) to answer questions based on your documents.")
     
     # Main content
@@ -147,7 +147,7 @@ def main():
             st.session_state.history = []
         
         # Question input
-        st.subheader("💬 Ask a Question")
+        st.subheader("Ask a Question")
         question = st.text_input(
             "Enter your question:",
             placeholder="e.g., What is our Q1 2024 revenue?",
@@ -157,10 +157,10 @@ def main():
         col_btn1, col_btn2, col_btn3 = st.columns([1, 1, 4])
         
         with col_btn1:
-            ask_button = st.button("🔍 Ask", type="primary", use_container_width=True)
+            ask_button = st.button("Ask", type="primary", use_container_width=True)
         
         with col_btn2:
-            clear_button = st.button("🗑️ Clear", use_container_width=True)
+            clear_button = st.button("Clear", use_container_width=True)
         
         if clear_button:
             st.session_state.history = []
@@ -169,9 +169,9 @@ def main():
         # Process question
         if ask_button and question:
             if not is_healthy:
-                st.error("⚠️ Cannot process question: API is not available")
+                st.error("Cannot process question: API is not available")
             else:
-                with st.spinner("🤔 Thinking..."):
+                with st.spinner("Processing..."):
                     success, result = query_rag(question, top_k, show_context)
                     
                     if success:
@@ -183,12 +183,12 @@ def main():
                         })
                         st.rerun()
                     else:
-                        st.error(f"❌ Error: {result}")
+                        st.error(f"Error: {result}")
         
         # Display history
         if st.session_state.history:
             st.divider()
-            st.subheader("📜 Conversation History")
+            st.subheader("Conversation History")
             
             for i, item in enumerate(st.session_state.history):
                 with st.expander(f"Q: {item['question'][:80]}... ({item['timestamp']})", expanded=(i==0)):
@@ -214,7 +214,7 @@ def main():
                     
                     # Context (if enabled)
                     if show_context and 'context' in item['result'] and item['result']['context']:
-                        with st.expander("📄 Retrieved Context"):
+                        with st.expander("Retrieved Context"):
                             st.text_area(
                                 "Context",
                                 value=item['result']['context'],
@@ -226,12 +226,12 @@ def main():
                     col_meta1, col_meta2 = st.columns(2)
                     with col_meta1:
                         if item['result'].get('tokens_used'):
-                            st.caption(f"🔢 Tokens: {item['result']['tokens_used']}")
+                            st.caption(f"Tokens: {item['result']['tokens_used']}")
                     with col_meta2:
-                        st.caption(f"🕐 {item['timestamp']}")
+                        st.caption(f"Time: {item['timestamp']}")
     
     with col2:
-        st.subheader("💡 Example Questions")
+        st.subheader("Example Questions")
         
         examples = [
             "What is our Q1 2024 financial performance?",
@@ -249,7 +249,7 @@ def main():
         
         st.divider()
         
-        st.subheader("📈 Quick Stats")
+        st.subheader("Quick Stats")
         if is_healthy and health_data:
             st.metric("Vector Store Status", health_data.get('vector_store_status', 'N/A'))
             st.metric("LLM Model", health_data.get('llm_model', 'N/A'))
