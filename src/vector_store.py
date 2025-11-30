@@ -91,8 +91,10 @@ class VectorStore:
         results = []
         for i, (idx, distance) in enumerate(zip(indices[0], distances[0])):
             if idx != -1:  # Valid result
-                # Convert distance to similarity score (for cosine: similarity = 1 - distance)
-                similarity = float(distance) if not normalize else float(distance)
+                # Convert distance to similarity score
+                # For cosine similarity (Inner Product): higher is better, use as-is
+                # For L2 distance: lower is better, so invert to make higher scores better
+                similarity = float(distance) if normalize else 1.0 / (1.0 + float(distance))
                 results.append((int(idx), similarity, self.chunks_metadata[idx]))
         
         return results

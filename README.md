@@ -168,7 +168,7 @@ rag.display_strategic_result(result)
 ### Method 3: Command Line
 
 ```bash
-# Run the built-in test suite
+# Initialize the system and test with sample queries
 python src/rag_pipeline.py
 ```
 
@@ -213,9 +213,9 @@ DETAILED STRATEGIC ANALYSIS
 
 SUPPORTING EVIDENCE SOURCES
 ===================================
-1. Customer_Feedback_Summary.pdf (Relevance: 92.3%)
-2. Employee_Satisfaction_Survey.pdf (Relevance: 87.1%)
-3. Competitor_Analysis_2024.pdf (Relevance: 78.4%)
+1. Customer_Feedback_Summary.pdf (Similarity: 92.3%)
+2. Employee_Satisfaction_Survey.pdf (Similarity: 87.1%)
+3. Competitor_Analysis_2024.pdf (Similarity: 78.4%)
 ```
 
 ---
@@ -355,7 +355,7 @@ print(result['detailed_analysis'])
 
 print("\nSources:")
 for source in result['sources']:
-    print(f"- {source['filename']} (Relevance: {source['relevance']})")
+    print(f"- {source['filename']} (Similarity: {source['similarity']})")
 
 print(f"\nProvider: {result['provider']}")
 print(f"Model: {result['model']}")
@@ -411,7 +411,7 @@ python -c "from src.rag_pipeline import StrategicRAGPipeline; print('Import succ
 - **StrategicRAGPipeline**: Main orchestration class
 - **EmbeddingGenerator**: Creates vector embeddings using sentence-transformers
 - **VectorStore**: FAISS-based vector similarity search
-- **DocumentLoader**: Multi-format document processing
+- **DocumentLoader**: PDF document processing using PyPDF2
 - **TextChunker**: Intelligent text segmentation
 
 ### Dependencies
@@ -422,7 +422,7 @@ Key libraries from `requirements.txt`:
 - **openai**: AI model integration
 - **sentence-transformers**: Text embeddings
 - **faiss-cpu**: Vector similarity search
-- **pandas**: Data processing
+- **PyPDF2**: PDF document processing
 
 ---
 
@@ -459,7 +459,7 @@ Key libraries from `requirements.txt`:
 
 ## Contributing
 
-We welcome contributions! Please see our contributing guidelines for details.
+We welcome contributions! Feel free to submit pull requests or open issues for improvements and bug fixes.
 
 ### Development Setup
 ```bash
@@ -468,16 +468,15 @@ cd ai-decision-brain
 pip install -r requirements.txt
 ```
 
-### Running Tests
-```bash
-pytest
-```
+## Author
+
+**Aya Yasser** - Email: ayasser.tawfik@gmail.com - Phone: +20 1025027056
 
 ---
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License.
 
 ---
 

@@ -349,7 +349,7 @@ EXECUTIVE SUMMARY FORMAT:
 # Test function with strategic queries
 if __name__ == "__main__":
     # Initialize Strategic RAG pipeline
-    print("Initializing BrainsQ.ai Strategic Decision Support System...")
+    print("Initializing AI Decision Brain Strategic Decision Support System...")
     rag = StrategicRAGPipeline()
     
     # Strategic test queries

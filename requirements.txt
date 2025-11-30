@@ -1,3 +1,4 @@
+# Core Dependencies - Based on actual project usage
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
 pydantic==2.5.0
@@ -21,6 +22,6 @@ requests==2.31.0
 # Utilities
 python-multipart==0.0.6
 
-# Development & Testing 
-pytest==7.4.3
-black==23.11.0
+# Development & Testing (Optional)
+# Uncomment if you want to use code formatting:
+# black==23.11.0
