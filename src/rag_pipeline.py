@@ -17,19 +17,34 @@ except ModuleNotFoundError:
 
 
 class RAGPipeline:
-    """Complete RAG pipeline for question answering"""
+    """Complete RAG pipeline for question answering with automatic OpenAI/Ollama fallback"""
     
     def __init__(self, vector_store_path: str = None):
-        # Initialize OpenAI client
-        self.client = openai.OpenAI(
-            base_url=Config.OPENAI_API_URL,
-            api_key=Config.OPENAI_API_KEY
-        )
+        # Get LLM configuration
+        self.llm_config = Config.get_llm_config()
         
-        # Initialize components
+        # Initialize primary client
         print("Initializing RAG Pipeline...")
         print("-" * 50)
+        print(f"Primary LLM: {self.llm_config['provider'].upper()}")
+        print(f"Primary Model: {self.llm_config['model']}")
         
+        self.primary_client = openai.OpenAI(
+            base_url=self.llm_config['api_url'],
+            api_key=self.llm_config['api_key']
+        )
+        
+        # Initialize fallback client if available
+        self.fallback_client = None
+        if 'fallback' in self.llm_config:
+            print(f"Fallback LLM: {self.llm_config['fallback']['provider'].upper()}")
+            print(f"Fallback Model: {self.llm_config['fallback']['model']}")
+            self.fallback_client = openai.OpenAI(
+                base_url=self.llm_config['fallback']['api_url'],
+                api_key=self.llm_config['fallback']['api_key']
+            )
+        
+        # Initialize components
         self.embedder = EmbeddingGenerator()
         self.vector_store = VectorStore()
         
@@ -83,36 +98,87 @@ Answer:"""
         
         return prompt
     
+    def _call_llm(self, client, model: str, prompt: str) -> Dict[str, any]:
+        """Internal method to call LLM API"""
+        response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": "You are a helpful AI assistant that answers questions based on provided context."},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=Config.MAX_TOKENS,
+            temperature=Config.TEMPERATURE
+        )
+        
+        answer = response.choices[0].message.content
+        tokens_used = response.usage.total_tokens if hasattr(response, 'usage') else None
+        
+        return {
+            'answer': answer,
+            'tokens_used': tokens_used
+        }
+    
     def generate_answer(self, query: str, context: str) -> Dict[str, any]:
-        """Generate answer using the LLM"""
+        """Generate answer using the LLM with automatic fallback"""
         prompt = self.create_prompt(query, context)
         
+        # Try primary LLM
         try:
-            response = self.client.chat.completions.create(
-                model=Config.GENERATION_MODEL_ID,
-                messages=[
-                    {"role": "system", "content": "You are a helpful AI assistant that answers questions based on provided context."},
-                    {"role": "user", "content": prompt}
-                ],
-                max_tokens=Config.MAX_TOKENS,
-                temperature=Config.TEMPERATURE
+            result = self._call_llm(
+                client=self.primary_client,
+                model=self.llm_config['model'],
+                prompt=prompt
             )
             
-            answer = response.choices[0].message.content
-            
             return {
-                'answer': answer,
-                'model': Config.GENERATION_MODEL_ID,
-                'tokens_used': response.usage.total_tokens if hasattr(response, 'usage') else None
+                'answer': result['answer'],
+                'model': self.llm_config['model'],
+                'provider': self.llm_config['provider'],
+                'tokens_used': result.get('tokens_used'),
+                'fallback_used': False
             }
         
-        except Exception as e:
-            return {
-                'answer': f"Error generating answer: {str(e)}",
-                'model': Config.GENERATION_MODEL_ID,
-                'tokens_used': None,
-                'error': str(e)
-            }
+        except Exception as primary_error:
+            error_msg = str(primary_error)
+            print(f"\n[WARNING] Primary LLM ({self.llm_config['provider'].upper()}) failed: {error_msg}")
+            
+            # Try fallback if available
+            if self.fallback_client:
+                print(f"[INFO] Attempting fallback to {self.llm_config['fallback']['provider'].upper()}...")
+                
+                try:
+                    result = self._call_llm(
+                        client=self.fallback_client,
+                        model=self.llm_config['fallback']['model'],
+                        prompt=prompt
+                    )
+                    
+                    print(f"[SUCCESS] Fallback succeeded!\n")
+                    
+                    return {
+                        'answer': result['answer'],
+                        'model': self.llm_config['fallback']['model'],
+                        'provider': self.llm_config['fallback']['provider'],
+                        'tokens_used': result.get('tokens_used'),
+                        'fallback_used': True
+                    }
+                
+                except Exception as fallback_error:
+                    return {
+                        'answer': f"Error: Both LLM providers failed.\n\nPrimary ({self.llm_config['provider'].upper()}): {error_msg}\n\nFallback ({self.llm_config['fallback']['provider'].upper()}): {str(fallback_error)}",
+                        'model': None,
+                        'provider': None,
+                        'tokens_used': None,
+                        'error': True
+                    }
+            else:
+                return {
+                    'answer': f"Error generating answer: {error_msg}",
+                    'model': self.llm_config['model'],
+                    'provider': self.llm_config['provider'],
+                    'tokens_used': None,
+                    'error': True
+                }
     
     def query(self, question: str, top_k: int = None, return_context: bool = False) -> Dict[str, any]:
         """Complete RAG query pipeline"""
@@ -144,8 +210,11 @@ Answer:"""
                 }
                 for idx, similarity, metadata in results
             ],
-            'model': response['model'],
-            'tokens_used': response.get('tokens_used')
+            'model': response.get('model'),
+            'provider': response.get('provider'),
+            'tokens_used': response.get('tokens_used'),
+            'fallback_used': response.get('fallback_used', False),
+            'error': response.get('error', False)
         }
         
         if return_context:
@@ -173,15 +242,21 @@ Answer:"""
         print("=" * 50)
         print(result['answer'])
         
-        if show_sources:
+        if show_sources and not result.get('error'):
             print("\n" + "=" * 50)
             print("SOURCES")
             print("=" * 50)
             for i, source in enumerate(result['sources'], 1):
                 print(f"{i}. {source['filename']} (Similarity: {source['similarity']:.4f})")
         
+        print(f"\nProvider: {result.get('provider', 'N/A').upper() if result.get('provider') else 'N/A'}")
+        print(f"Model: {result.get('model', 'N/A') if result.get('model') else 'N/A'}")
+        
+        if result.get('fallback_used'):
+            print("[INFO] Fallback LLM was used")
+        
         if result.get('tokens_used'):
-            print(f"\nTokens used: {result['tokens_used']}")
+            print(f"Tokens used: {result['tokens_used']}")
         
         print("=" * 50)
 

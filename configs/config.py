@@ -18,10 +18,11 @@ class Config:
     EMBEDDING_MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
     EMBEDDING_DIMENSION = 384 
     
-    # LLM configuration 
-    OPENAI_API_URL = os.getenv("OPENAI_API_URL")
-    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-    GENERATION_MODEL_ID = os.getenv("GENERATION_MODEL_ID")
+    # LLM configuration - Load from environment
+    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY").strip()
+    OPENAI_MODEL = os.getenv("OPENAI_MODEL")
+    OLLAMA_API_URL = os.getenv("OLLAMA_API_URL")
+    OLLAMA_MODEL = os.getenv("OLLAMA_MODEL")
     
     # Chunking configuration
     CHUNK_SIZE = 500  
@@ -36,6 +37,37 @@ class Config:
     TEMPERATURE = 0.7  
     
     @classmethod
+    def has_openai_key(cls):
+        """Check if OpenAI API key is available and valid"""
+        return bool(cls.OPENAI_API_KEY and len(cls.OPENAI_API_KEY) > 20)
+    
+    @classmethod
+    def get_llm_config(cls):
+        """Get LLM configuration based on available credentials"""
+        if cls.has_openai_key():
+            # OpenAI is available
+            return {
+                'provider': 'openai',
+                'api_url': 'https://api.openai.com/v1/',
+                'api_key': cls.OPENAI_API_KEY,
+                'model': cls.OPENAI_MODEL,
+                'fallback': {
+                    'provider': 'ollama',
+                    'api_url': cls.OLLAMA_API_URL,
+                    'api_key': 'ollama',
+                    'model': cls.OLLAMA_MODEL
+                }
+            }
+        else:
+            # Use Ollama only
+            return {
+                'provider': 'ollama',
+                'api_url': cls.OLLAMA_API_URL,
+                'api_key': 'ollama',
+                'model': cls.OLLAMA_MODEL
+            }
+    
+    @classmethod
     def ensure_directories(cls):
         """Create necessary directories if they don't exist"""
         cls.DATA_DIR.mkdir(exist_ok=True)
@@ -46,10 +78,14 @@ class Config:
     def validate_config(cls):
         """Validate that all required configurations are set"""
         assert cls.DOCUMENTS_DIR.exists(), f"Documents directory not found: {cls.DOCUMENTS_DIR}"
-        assert cls.OPENAI_API_URL, "OPENAI_API_URL not set in .env file"
-        assert cls.OPENAI_API_KEY, "OPENAI_API_KEY not set in .env file"
-        assert cls.GENERATION_MODEL_ID, "GENERATION_MODEL_ID not set in .env file"
+        
+        llm_config = cls.get_llm_config()
         print("Configuration validated successfully")
+        print(f"LLM Provider: {llm_config['provider'].upper()}")
+        print(f"Model: {llm_config['model']}")
+        
+        if 'fallback' in llm_config:
+            print(f"Fallback: {llm_config['fallback']['provider'].upper()} available")
     
     @classmethod
     def display_config(cls):
@@ -60,11 +96,25 @@ class Config:
         print(f"Documents Directory: {cls.DOCUMENTS_DIR}")
         print(f"Vector DB Directory: {cls.VECTOR_DB_DIR}")
         print(f"Embedding Model: {cls.EMBEDDING_MODEL_NAME}")
-        print(f"LLM API URL: {cls.OPENAI_API_URL if cls.OPENAI_API_URL else '[NOT SET]'}")
-        print(f"LLM Model: {cls.GENERATION_MODEL_ID if cls.GENERATION_MODEL_ID else '[NOT SET]'}")
-        print(f"API Key: {'*' * 8 if cls.OPENAI_API_KEY else '[NOT SET]'}")
-        print(f"Chunk Size: {cls.CHUNK_SIZE}")
-        print(f"Top K Results: {cls.TOP_K_RESULTS}")
+        
+        llm_config = cls.get_llm_config()
+        print(f"\nLLM Configuration:")
+        print(f"  Primary Provider: {llm_config['provider'].upper()}")
+        print(f"  Primary Model: {llm_config['model']}")
+        
+        if llm_config['provider'] == 'openai':
+            print(f"  OpenAI Key: {'*' * 8}...{cls.OPENAI_API_KEY[-4:]}")
+        else:
+            print(f"  Ollama URL: {cls.OLLAMA_API_URL}")
+        
+        if 'fallback' in llm_config:
+            print(f"  Fallback Provider: {llm_config['fallback']['provider'].upper()}")
+            print(f"  Fallback Model: {llm_config['fallback']['model']}")
+        
+        print(f"\nRetrieval Settings:")
+        print(f"  Chunk Size: {cls.CHUNK_SIZE}")
+        print(f"  Chunk Overlap: {cls.CHUNK_OVERLAP}")
+        print(f"  Top K Results: {cls.TOP_K_RESULTS}")
         print("=" * 50)
 
 
